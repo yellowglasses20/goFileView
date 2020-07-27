@@ -90,18 +90,27 @@ func selectServiceList(serviceList *tview.List, bucketList *tview.TextView, file
 		serviceList.AddItem(file.Name(), file.Mode().String(), 0, func() {
 			dirName, _ := serviceList.GetItemText(serviceList.GetCurrentItem())
 			nextFilePath := filepath.Join(dir, dirName)
-			f, _ := os.Open(nextFilePath)
-			defer f.Close()
-			fs, _ := f.Stat()
-
-			if fs.IsDir() {
-				f := dirwalk(nextFilePath)
-				createServiceList(serviceList, bucketList, f, app, nextFilePath)
-
-			} else {
-				bucketFunc(bucketList, nextFilePath, app)
+			fs, err := fileStat(nextFilePath)
+			if err != nil {
+				panic(err)
 			}
+
+			selectDirOrFile(fs, nextFilePath, serviceList, bucketList, app)
 		})
 	}
+}
 
+func fileStat(filePath string) (os.FileInfo, error) {
+	f, _ := os.Open(filePath)
+	defer f.Close()
+	return f.Stat()
+}
+
+func selectDirOrFile(fs os.FileInfo, nextFilePath string, serviceList *tview.List, bucketList *tview.TextView, app *tview.Application) {
+	if fs.IsDir() {
+		f := dirwalk(nextFilePath)
+		createServiceList(serviceList, bucketList, f, app, nextFilePath)
+		return
+	}
+	bucketFunc(bucketList, nextFilePath, app)
 }
